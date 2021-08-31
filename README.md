@@ -18,7 +18,7 @@ Demo
 ----
 
 
-Uma versão demo está disponível em: http://api.garimpatrampos.co.vu:8000/docs
+Uma versão demo está disponível em: http://garimpatrampos.co.vu:8000/docs
 
 Requisitos
 ----------
