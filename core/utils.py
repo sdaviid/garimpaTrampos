@@ -7,7 +7,7 @@ import codecs
 def read_config_file():
     retorno = False
     data = False
-    with codecs.open("core/config.json", encoding='UTF-8', mode='r') as f:
+    with codecs.open("config.json", encoding='UTF-8', mode='r') as f:
         data = f.read()
     if data:
     	retorno = json.loads(data)
