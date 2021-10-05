@@ -4,15 +4,15 @@
 		"title": "InfoJobs",
 		"active": true,
 		"url": "https://www.infojobs.com.br",
-		"username": "example@example.com",
-		"password": "123456"
+		"username": "sdaviid@gmail.com",
+		"password": "kyur13"
 	},
 	{
 		"plugin_script": "catho",
 		"title": "Catho",
-		"active": false,
+		"active": true,
 		"url": "https://www.catho.com.br",
-		"username": "example@example.com",
-		"password": "123456"
+		"username": "sdaviid@gmail.com",
+		"password": "@Steam10"
 	}
 ]

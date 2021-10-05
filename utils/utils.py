@@ -2,6 +2,12 @@ import requests
 import lxml.html
 import json
 import codecs
+from core.garimpaException import NotExpectedStatusCode
+
+from utils.logging_utils import create_default_logger
+
+
+logger = create_default_logger("utils/utils")
 
 
 def read_config_file():
@@ -40,13 +46,28 @@ def get_cep_data(cep):
         'sid': 'Busca por CEP, Cidade, Endereço, CNPJ ou Cód. IBGE',
         'submit': 'Pesquisar'
     }
-    r = requests.post(url, data=payload, headers=headers, verify=False)
-    h = lxml.html.fromstring(r.text)
-    dados_cep = h.xpath('//div[@class="row resultado-buscacep alinhaesquerda"]/div[@class="col-md-6"]/p/b/following-sibling::text()')
-    lat = dados_cep[3].strip()
-    lon = dados_cep[4].strip()
-    cidade = dados_cep[6].strip()
-    uf = dados_cep[9].strip()
-    if lat and lon:
-        retorno = {'Latitude': lat, 'Longitude': lon, 'Cidade': cidade, 'UF': uf}
+    try:
+        r = requests.post(url, data=payload, headers=headers, verify=False)
+        if r.status_code != 200:
+            raise NotExpectedStatusCode
+        h = lxml.html.fromstring(r.text)
+        dados_cep = h.xpath('//div[@class="row resultado-buscacep alinhaesquerda"]/div[@class="col-md-6"]/p/b/following-sibling::text()')
+        lat = dados_cep[3].strip()
+        lon = dados_cep[4].strip()
+        cidade = dados_cep[6].strip()
+        uf = dados_cep[9].strip()
+    except NotExpectedStatusCode:
+        logger.critical(f'Get CEP details expecting status code 200, got {r.status_code} instead')
+    except Exception as err:
+        logger.error('Exception Get CEP details', exc_info=True)
+        raise IndexError(err)
+    else:
+        if lat and lon:
+            retorno = {'Latitude': lat, 'Longitude': lon, 'Cidade': cidade, 'UF': uf}
+            logger.info('Get CEP Details ok')
     return retorno
+
+
+
+
+

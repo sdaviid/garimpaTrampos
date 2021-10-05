@@ -1,0 +1,7 @@
+requests
+fastapi
+uvicorn
+lxml
+requests
+pkce
+pyjwt

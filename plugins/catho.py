@@ -3,9 +3,11 @@ import lxml.html
 import json
 
 
-from core import utils
+from utils.logging_utils import create_default_logger
+from utils import utils
 from core.garimpaHandler import garimpaHandler, garimpaCompany, garimpaJob, garimpaJobs, garimpaVacancy
 
+logger = create_default_logger("plugins/catho")
 
 
 
@@ -170,6 +172,57 @@ class catho(garimpaHandler):
         return retorno
     def get_company(self, *kwg):
         raise NotImplementedError
+    def get_vacancy(self, key_vaga):
+        retorno = False
+        if self.logged == True:
+            url = 'https://api-services.catho.com.br/job-ads/jobs/%s/?format=json' % (str(key_vaga))
+            headers = {
+                'Authorization': 'Bearer %s' % (self.auth_data['TOKEN']),
+                'User-Agent': 'App Android 2.15.6-20210623_1048; API 25; ONEPLUS A5010',
+                'X-Origin': 'app-android',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Api-Key': self.auth_data['VAGAS'],
+                'Host': 'api-services.catho.com.br',
+                'Accept-Encoding': 'gzip',
+                'Content-Type': 'application/json; charset=UTF-8'
+            }
+            r = requests.get(url, headers=headers, verify=False)
+            if r.status_code == 200:
+                j = json.loads(r.text)
+                emp_cargo = j['title']
+                emp_descr = j['activities']
+                emp_obs = j['observation']
+                emp_periodo = j['period']
+                emp_data = j['entry_date']
+                emp_modelo = j['contracting_models']
+                emp_perfil = j['profiles']
+                emp_recruta = j['main_recruiter']
+                emp_salario = j['salary']
+                emp_beneficios = j['benefits']
+                emp_estado = j['positions'][0]['state'] if j['positions'] else ''
+                emp_cidade = j['positions'][0]['city'] if j['positions'] else ''
+                emp_requerimentos = j['requirements']
+                emp_empresa = j['hirer']
+                emp_vaga = j['role']
+                dd = {
+                    'CARGO': emp_cargo,
+                    'DESCR': emp_descr,
+                    'OBSERVACAO': emp_obs,
+                    'PERIODO': emp_periodo,
+                    'DATA': emp_data,
+                    'MODELO': emp_modelo,
+                    'PERFIL': emp_perfil,
+                    'RECRUTA': emp_recruta,
+                    'SALARIO': emp_salario,
+                    'BENEFICIOS': emp_beneficios,
+                    'UF': emp_estado,
+                    'CIDADE': emp_cidade,
+                    'REQUERIMENTOS': emp_requerimentos,
+                    'DADOS_EMPRESA': emp_empresa
+                }
+                retorno = garimpaVacancy(title=emp_cargo, salary=emp_salario, level='', contract=emp_modelo, period=emp_periodo, method=emp_periodo, description=emp_descr, requiriments=emp_requerimentos, vacancy=emp_vaga, id_company=[], name=emp_empresa, date_creation=emp_data, state=emp_estado, city=emp_cidade, is_premium=False, is_confidential=False, benefitis=emp_beneficios, company_data=None)
+        return retorno
     def get_jobs(self, chave, cep, pagina=1):
         retorno = False
         if self.logged == True:
@@ -248,5 +301,6 @@ class catho(garimpaHandler):
                                             emp_cidade = dados['positions'][0]['city'] if dados['positions'] else ''
                                             temp_emp = garimpaJob(id=emp_id, vacancy=emp_vaga, name=emp_nome, date_creation=emp_data, description=emp_descr, period=emp_periodo, model=emp_modelo, salary=emp_salario, benefits=emp_beneficios, state=emp_estado, city=emp_cidade)
                                             data_emp.append(temp_emp)
-                            retorno = garimpaJobs(data=data_emp, total=int(j['meta']['total']['jobAds']), page=int(pagina))
+                            retorno = garimpaJobs.parse_obj({'status': 200, 'data': data_emp, 'total': int(j['meta']['total']['jobAds']), 'page': int(pagina)})
+                            #retorno = garimpaJobs(response=data_emp, total=int(j['meta']['total']['jobAds']), page=int(pagina))
         return retorno
