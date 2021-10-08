@@ -4,4 +4,4 @@ uvicorn
 lxml
 requests
 pkce
-pyjwt==1.3.1
+pyjwt==1.3.0
