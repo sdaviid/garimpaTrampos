@@ -32,7 +32,7 @@ class catho(garimpaHandler):
             'Host': 'api-services.catho.com.br',
             'Accept-Encoding': 'gzip'
         }
-        r = requests.get(url, headers=headers, verify=False)
+        r = requests.get(url, headers=headers, verify=True)
         if r.status_code == 200:
             j = json.loads(r.text)
             if 'services' in j:
@@ -73,7 +73,7 @@ class catho(garimpaHandler):
                 "token": None,
                 "username": self.login
             }
-            r = requests.post(url, json=payload, headers=headers, verify=False)
+            r = requests.post(url, json=payload, headers=headers, verify=True)
             if r.status_code == 200:
                 j = json.loads(r.text)
                 if 'code' in j:
@@ -86,7 +86,7 @@ class catho(garimpaHandler):
                         "redirect_uri": "com.catho.app://authorize-callback",
                         "refresh_token": None
                     }
-                    r = requests.post(url, json=payload, headers=headers, verify=False)
+                    r = requests.post(url, json=payload, headers=headers, verify=True)
                     if r.status_code == 200:
                         j = json.loads(r.text)
                         if 'access_token' in j:
@@ -114,7 +114,7 @@ class catho(garimpaHandler):
                     'Host': 'api-services.catho.com.br',
                     'Accept-Encoding': 'gzip'
                 }
-                r = requests.get(url, headers=headers, verify=False)
+                r = requests.get(url, headers=headers, verify=True)
                 if r.status_code == 200:
                     j = json.loads(r.text)
                     for i in j:
@@ -130,19 +130,22 @@ class catho(garimpaHandler):
                 'Authorization': 'Bearer %s' % (self.auth_data['TOKEN']),
                 'User-Agent': 'App Android 2.15.6-20210623_1048; API 25; ONEPLUS A5010',
                 'X-Origin': 'app-android',
+                'api-client-id': '2',
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-Api-Key': self.auth_data['OPCOES'],
                 'Host': 'api-services.catho.com.br',
                 'Accept-Encoding': 'gzip'
             }
-            r = requests.get(url, headers=headers, verify=False)
+            r = requests.get(url, headers=headers, verify=True)
             if r.status_code == 200:
                 j = json.loads(r.text)
                 if 'data' in j:
                     retorno = []
                     for i in j['data']:
                         retorno.append(i['title'])
+            else:
+                pass
         return retorno
     def get_key_city(self, key_uf, cep=None, cidade=None):
         if self.logged == True:
@@ -162,7 +165,7 @@ class catho(garimpaHandler):
                     'Host': 'api-services.catho.com.br',
                     'Accept-Encoding': 'gzip'
                 }
-                r = requests.get(url, headers=headers, verify=False)
+                r = requests.get(url, headers=headers, verify=True)
                 if r.status_code == 200:
                     j = json.loads(r.text)
                     for i in j:
@@ -187,7 +190,7 @@ class catho(garimpaHandler):
                 'Accept-Encoding': 'gzip',
                 'Content-Type': 'application/json; charset=UTF-8'
             }
-            r = requests.get(url, headers=headers, verify=False)
+            r = requests.get(url, headers=headers, verify=True)
             if r.status_code == 200:
                 j = json.loads(r.text)
                 emp_cargo = j['title']
@@ -277,7 +280,7 @@ class catho(garimpaHandler):
                                 "subscriber": True
                             }
                         }
-                        r = requests.post(url, json=payload, headers=headers, verify=False)
+                        r = requests.post(url, json=payload, headers=headers, verify=True)
                         if r.status_code == 200:
                             j = json.loads(r.text)
                             data_emp = []

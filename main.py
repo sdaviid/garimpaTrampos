@@ -1,3 +1,7 @@
+from pydoc import locate
+
+from pydantic import BaseModel
+
 from fastapi import FastAPI, Path, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,12 +13,20 @@ from typing import Optional, Union
 
 from utils.logging_utils import create_default_logger
 from utils import utils
-from core.garimpaHandler import garimpaPlugins, garimpaPlugin, garimpaJobs, garimpaCompany, garimpaVacancy, garimpaJobs, garimpaHandlerError, garimpaHandlerSuccess, garimpaHandlerResponse
+from core.garimpaHandler import(
+    garimpaPlugins,
+    garimpaPlugin,
+    garimpaJobs,
+    garimpaCompany,
+    garimpaVacancy,
+    garimpaJobs,
+    garimpaHandlerError,
+    garimpaHandlerSuccess,
+    garimpaHandlerResponse
+)
 from core.garimpaException import NotExpectedStatusCode
-import importlib
-from pydoc import locate
 
-from pydantic import BaseModel
+
 
 
 logger = create_default_logger("main")
@@ -121,7 +133,7 @@ def validate_plugin(key_source):
         #return garimpaHandlerError(status=404, data=[], message="Plugin not found")
     if plugins[key_source]['active'] is not True:
         return garimpaHandlerResponse.parse_obj({'status': 400, 'data': [], 'message': 'Plugin not activate'})
-    return garimpaJobs.parse_obj({'status': 200, 'data': []})
+    return garimpaHandlerResponse.parse_obj({'status': 200, 'data': []})
     #return garimpaHandlerSuccess(status=200, data=[])
 
 
