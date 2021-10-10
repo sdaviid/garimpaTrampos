@@ -5,9 +5,15 @@ import json
 
 from utils.logging_utils import create_default_logger
 from utils import utils
-from core.garimpaHandler import garimpaHandler, garimpaCompany, garimpaJob, garimpaJobs, garimpaVacancy
+from core.garimpaHandler import(
+    garimpaHandler,
+    garimpaCompanyData,
+    garimpaJob,
+    garimpaJobs,
+    garimpaVacancyData
+)
 
-logger = create_default_logger("plugins/catho")
+logger = create_default_logger("plugins.catho")
 
 
 
@@ -15,11 +21,12 @@ class catho(garimpaHandler):
     auth_data = None
     login = None
     senha = None
-    logged = False
     def __init__(self, login, senha):
+        self.logged = False
         self.login = login
         self.senha = senha
         self.make_login()
+        super().__init__('catho', self.logged)
     def get_api_key(self):
         retorno = {}
         url = 'https://api-services.catho.com.br/config/v1/auth-keys/android'
@@ -224,7 +231,7 @@ class catho(garimpaHandler):
                     'REQUERIMENTOS': emp_requerimentos,
                     'DADOS_EMPRESA': emp_empresa
                 }
-                retorno = garimpaVacancy(title=emp_cargo, salary=emp_salario, level='', contract=emp_modelo, period=emp_periodo, method=emp_periodo, description=emp_descr, requiriments=emp_requerimentos, vacancy=emp_vaga, id_company=[], name=emp_empresa, date_creation=emp_data, state=emp_estado, city=emp_cidade, is_premium=False, is_confidential=False, benefitis=emp_beneficios, company_data=None)
+                retorno = garimpaVacancyData(title=emp_cargo, salary=emp_salario, level='', contract=emp_modelo, period=emp_periodo, method=emp_periodo, description=emp_descr, requirements=emp_requerimentos, vacancy=emp_vaga, id_company=[], name=emp_empresa, date_creation=emp_data, state=emp_estado, city=emp_cidade, is_premium=False, is_confidential=False, benefitis=emp_beneficios, company_data=None)
         return retorno
     def get_jobs(self, chave, cep, pagina=1):
         retorno = False

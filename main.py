@@ -2,7 +2,7 @@ from pydoc import locate
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Path, Query, HTTPException
+from fastapi import FastAPI, Path, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -24,7 +24,11 @@ from core.garimpaHandler import(
     garimpaHandlerSuccess,
     garimpaHandlerResponse
 )
-from core.garimpaException import NotExpectedStatusCode
+from core.garimpaException import(
+    NotExpectedStatusCode,
+    WrongLengthCEP,
+    FailedGetVacancyData
+)
 
 
 
@@ -99,23 +103,15 @@ async def validation_exception_handler(request, exc):
     return PlainTextResponse(str(exc), status_code=400)
 
 
-
-
-@app.get('/get-job-sources')
-def get_job_sources():
-    output = []
-    for plugin in plugins:
-        output.append(garimpaPlugin.parse_obj({'key': plugins[plugin]['data']['plugin_script'], 'title': plugins[plugin]['data']['title'], 'active': plugins[plugin]['active'], 'url': plugins[plugin]['data']['url']}))
-        #output_data = garimpaPlugin(key=plugins[plugin]['data']['plugin_script'], title=plugins[plugin]['data']['title'], active=plugins[plugin]['active'], url=plugins[plugin]['data']['url'])
-        #output.append(output_data)
-    return garimpaHandlerResponse.parse_obj({'status': 200, 'data': output})
-    #data = garimpaHandlerSuccess(status=200, data=garimpaPlugins(data=output))
-    #return data.json_response()
+@app.exception_handler(IndexError)
+async def value_error_exception_handler(request: Request, exc: IndexError):
+    return JSONResponse(
+        status_code=350,
+        content={"message": str(exc)},
+    )
 
 
 
-class Message(BaseModel):
-    message: str
 
 
 
@@ -127,13 +123,49 @@ responses = {
 
 
 
+
+
+@app.get(
+    '/get-job-sources',
+    response_model=Union[garimpaPlugins, garimpaHandlerResponse]
+)
+def get_job_sources():
+    output = []
+    for plugin in plugins:
+        output.append(garimpaPlugin.parse_obj(
+                                            {
+                                                'key': plugins[plugin]['data']['plugin_script'],
+                                                'title': plugins[plugin]['data']['title'],
+                                                'active': plugins[plugin]['active'],
+                                                'url': plugins[plugin]['data']['url']
+                                            }
+                                        )
+        )
+        #output_data = garimpaPlugin(key=plugins[plugin]['data']['plugin_script'], title=plugins[plugin]['data']['title'], active=plugins[plugin]['active'], url=plugins[plugin]['data']['url'])
+        #output.append(output_data)
+    return garimpaHandlerResponse(status=200, data=output).json_response()
+    #return garimpaHandlerResponse.parse_obj({'status': 200, 'data': output})
+    #data = garimpaHandlerSuccess(status=200, data=garimpaPlugins(data=output))
+    #return data.json_response()
+
+
+
+class Message(BaseModel):
+    message: str
+
+
+
+
 def validate_plugin(key_source):
     if key_source not in plugins:
-        return garimpaHandlerResponse.parse_obj({'status': 404, 'data': [], 'message': 'Plugin n2ot found'})
+        return garimpaHandlerResponse(status=404, message='Pluin nor found').json_response()
+        #return garimpaHandlerResponse.parse_obj({'status': 404, 'data': [], 'message': 'Plugin n2ot found'})
         #return garimpaHandlerError(status=404, data=[], message="Plugin not found")
     if plugins[key_source]['active'] is not True:
-        return garimpaHandlerResponse.parse_obj({'status': 400, 'data': [], 'message': 'Plugin not activate'})
-    return garimpaHandlerResponse.parse_obj({'status': 200, 'data': []})
+        return garimpaHandlerResponse(status=400, message='Pluin nor activate').json_response()
+        #return garimpaHandlerResponse.parse_obj({'status': 400, 'data': [], 'message': 'Plugin not activate'})
+    return True
+    #return garimpaHandlerResponse.parse_obj({'status': 200, 'data': []})
     #return garimpaHandlerSuccess(status=200, data=[])
 
 
@@ -148,7 +180,7 @@ def validate_plugin(key_source):
 )
 def search_vacancies(key_source: str, keyword: str, zipcode: str, page: Optional[int] = Query(1, alias="page")):
     validate = validate_plugin(key_source)
-    if validate.status == 200:
+    if validate == True:
         try:
             jobs = plugins[key_source]['instance'].get_jobs(keyword, zipcode, page)
             if jobs:
@@ -157,13 +189,16 @@ def search_vacancies(key_source: str, keyword: str, zipcode: str, page: Optional
             #return garimpaHandlerResponse.parse_obj({'status': 200, 'data': plugins[key_source]['instance'].get_jobs(keyword, zipcode, page)})
             #validate.data = plugins[key_source]['instance'].get_jobs(keyword, zipcode, page)
             #return validate.json_response()
-        except IndexError:
-            return garimpaHandlerResponse.parse_obj({'status': 433, 'message': 'Somethi3333ng Went Wrong'})
+        except IndexError as err:
+            #return garimpaHandlerResponse.parse_obj({'status': 433, 'message': 'Somethi3333ng Went Wrong'})
+            raise IndexError(err)
         except NotImplementedError:
             return garimpaHandlerResponse.parse_obj({'status': 501, 'message': 'Not Implemented'})
             #return JSONResponse(status_code=501, content={"message": "Not Implemented"})
         except NotExpectedStatusCode:
             return garimpaHandlerResponse.parse_obj({'status': 500, 'message': 'Something Went Wrong'})
+        except WrongLengthCEP as err:
+            return garimpaHandlerResponse(status=312, data=[], message=str(err)).json_response()
     else:
         return validate
 
@@ -171,20 +206,24 @@ def search_vacancies(key_source: str, keyword: str, zipcode: str, page: Optional
 
 @app.get(
     '/get-vacancy/{key_source}/{id_vacancy}',
-    response_model=garimpaVacancy,
+    response_model=Union[garimpaVacancy, garimpaHandlerResponse],
     responses={
         **responses
     }
 )
 def get_vacancy(key_source: str, id_vacancy: int):
     validate = validate_plugin(key_source)
-    if validate.status == 200:
+    if validate == True:
         try:
-            return plugins[key_source]['instance'].get_vacancy(id_vacancy)
+            return garimpaVacancy(status=200, data=plugins[key_source]['instance'].get_vacancy(id_vacancy)).json_response()
         except NotImplementedError:
             return JSONResponse(status_code=501, content={"message": "Not Implemented"})
+        except FailedGetVacancyData as err:
+            return garimpaHandlerResponse(status=500, message=str(err)).json_response()
+        except Exception as err:
+            return JSONResponse(status_code=501, content={"message": "Not Implemented"})
     else:
-        return JSONResponse(status_code=validate.status, content=validate.dict())
+        return validate
 
 
 
@@ -193,7 +232,7 @@ def get_vacancy(key_source: str, id_vacancy: int):
 
 @app.get(
    '/get-company/{key_source}/{id_company}',
-   response_model=garimpaCompany,
+   response_model=Union[garimpaCompany, garimpaHandlerResponse],
    responses= {
         **responses,
         502: {"model": Message, "description": "not faund"},
@@ -201,25 +240,27 @@ def get_vacancy(key_source: str, id_vacancy: int):
 )
 def get_company(key_source: str, id_company: int):
     validate = validate_plugin(key_source)
-    if validate.status == 200:
+    if validate == True:
         try:
-            return plugins[key_source]['instance'].get_company(id_company)
+            return garimpaCompany(status=200, data=plugins[key_source]['instance'].get_company(id_company)).json_response()
+            #return plugins[key_source]['instance'].get_company(id_company)
         except NotImplementedError:
-            return JSONResponse(status_code=501, content={"message": "Not Implemented"})
+            return garimpaHandlerResponse(status=501, data=[], message="Not Implemented").json_response()
+            #return JSONResponse(status_code=501, content={"message": "Not Implemented"})
     else:
-        return JSONResponse(status_code=validate.status, content=validate.dict())
+        return validate
 
 
 
 @app.get('/get-keywords-from/{key_source}/{keyword}')
 def get_keywords_from(key_source: str, keyword: str):
     validate = validate_plugin(key_source)
-    if validate.status == 200:
+    if validate == True:
         try:
             return plugins[key_source]['instance'].get_keyword_options(keyword)
         except NotImplementedError:
             return JSONResponse(status_code=501, content={"message": "Not Implemented"})
     else:
-        return JSONResponse(status_code=validate.status, content=validate.dict())
+        return validate
 
 

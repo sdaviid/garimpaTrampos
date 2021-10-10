@@ -2,7 +2,10 @@ import requests
 import lxml.html
 import json
 import codecs
-from core.garimpaException import NotExpectedStatusCode
+from core.garimpaException import(
+    NotExpectedStatusCode,
+    WrongLengthCEP
+)
 
 from utils.logging_utils import create_default_logger
 
@@ -23,6 +26,9 @@ def read_config_file():
 
 def get_cep_data(cep):
     retorno = False
+    cep = cep.replace('.', '').replace('-', '')
+    if len(cep)!=8:
+        raise WrongLengthCEP('CEP Length must has 8 chars')
     url = 'https://www.mapacep.com.br/index.php'
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',

@@ -1,8 +1,13 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 from fastapi import Query
 from fastapi.responses import JSONResponse
 
+
+from utils.logging_utils import create_default_logger
+
+
+logger = create_default_logger("core.handler")
 
 
 class garimpaHandlerSuccess(BaseModel):
@@ -22,16 +27,10 @@ class garimpaHandlerError(garimpaHandlerSuccess):
 
 class garimpaHandlerResponse(BaseModel):
     status: Union[bool, int, None]
-    data: Union[list, dict, None]
-    message: Union[str, None]
-
-
-
-
-class garimpaPlugins(garimpaHandlerResponse):
-    data: Union[list, dict, None]
-
-
+    data: Optional[Union[list, dict, None]] = []
+    message: Optional[Union[str, None]] = None
+    def json_response(self):
+        return JSONResponse(status_code=self.status, content=self.dict())
 
 
 
@@ -43,9 +42,19 @@ class garimpaPlugin(BaseModel):
 
 
 
+class garimpaPlugins(garimpaHandlerResponse):
+    data: List[garimpaPlugin]
+    #data: Union[list, dict, None]
 
 
-class garimpaCompany(BaseModel):
+
+
+
+
+
+
+
+class garimpaCompanyData(BaseModel):
     description: str
     number_employees: str
     area: str
@@ -56,7 +65,13 @@ class garimpaCompany(BaseModel):
 
 
 
-class garimpaVacancy(BaseModel):
+
+class garimpaCompany(garimpaHandlerResponse):
+    data: Union[garimpaCompanyData, None]
+
+
+
+class garimpaVacancyData(BaseModel):
     title: str = Field(
         title='Categoria', 
         description='Categoria da vaga'
@@ -82,7 +97,7 @@ class garimpaVacancy(BaseModel):
     description: Union[str, dict, list] = Field(
         title='Descrição da vaga'
     )
-    requiriments: Union[str, dict, list] = Field(
+    requirements: Union[str, dict, list] = Field(
         title='Requerimentos',
         description='Requerimentos para se candidatar'
     )
@@ -117,9 +132,17 @@ class garimpaVacancy(BaseModel):
     benefits: Union[str, list, dict, None] = Field(
         title='Beneficios'
     )
-    company_data: Union[str, dict, list, garimpaCompany, None] = Field(
+    company_data: Union[str, dict, list, garimpaCompanyData, None] = Field(
         title='Informações da empresa'
     )
+
+
+
+
+
+class garimpaVacancy(garimpaHandlerResponse):
+    data: Union[garimpaVacancyData, None]
+
 
 
 
@@ -154,7 +177,18 @@ class garimpaJobs(garimpaHandlerResponse):
 
 
 class garimpaHandler(object):
+    def __init__(self, title=None, logged=False):
+        self.logged = logged
+        self.title = title
+    #     self.teste()
+    # def teste(self):
+    #     logger.info('{} - {}'.format(self.title, 'SIM' if self.logged is True else 'NAO'))
+    # def __getattribute__(self, item):
+    #     logger.info('__getattribute__ {}'.format(item))
+    #     return super().__getattribute__(item)
     def make_login(self):
+        # logger.info('CALLING MAKE LOGIN')
+        # super().make_login()
         pass
     def get_key_state(self, *args, **kw):
         pass

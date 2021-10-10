@@ -7,30 +7,36 @@ import jwt
 
 from utils.logging_utils import create_default_logger
 from utils import utils
-from core.garimpaHandler import (
-    garimpaHandler, 
-    garimpaCompany, 
-    garimpaJob, 
-    garimpaJobs, 
-    garimpaVacancy
+from core.garimpaHandler import(
+    garimpaHandler,
+    garimpaCompanyData,
+    garimpaJob,
+    garimpaJobs,
+    garimpaVacancyData
 )
 from core.garimpaException import(
     NotExpectedStatusCode,
-    AccessTokenNotFound
+    AccessTokenNotFound,
+    FailedGetVacancyData
 )
 
 
-logger = create_default_logger("plugins/infojobs")
+logger = create_default_logger("plugins.infojobs")
 
 class infojobs(garimpaHandler):
     auth_data = None
     login = None
     senha = None
-    logged = False
-    def __init__(self, login, senha):
+    def __init__(
+        self,
+        login,
+        senha
+    ):
+        self.logged = False
         self.login = login
         self.senha = senha
         self.make_login()
+        super().__init__('infojobs', self.logged)
     def make_login(self):
         retorno = False
         def generate_cv_cc(length=43):
@@ -357,7 +363,8 @@ class infojobs(garimpaHandler):
                                     logger.info('Get Jobs ok')
                                     #retorno = garimpaJobs(statusresponse=data_emp, total=int(j['d']['total']), page=int(pagina))
         except IndexError as err:
-            retorno = garimpaJobs.parse_obj({'status': 402, 'data': [], 'message': str(err)})
+            #retorno = garimpaJobs.parse_obj({'status': 402, 'data': [], 'message': str(err)})
+            raise IndexError(err)
         return retorno
     def get_company(self, key_empresa):
         retorno = False
@@ -387,7 +394,7 @@ class infojobs(garimpaHandler):
                 emp_id = str(dados['IdCompany'])
                 emp_nome = str(dados['Name'])
                 emp_localizacao = str(dados['Location3'])
-                retorno = garimpaCompany(description=emp_descr, number_employees=emp_funcionarios, area=emp_setor, url=emp_url, id=emp_id, name=emp_nome, location=emp_localizacao)
+                retorno = garimpaCompanyData(description=emp_descr, number_employees=emp_funcionarios, area=emp_setor, url=emp_url, id=emp_id, name=emp_nome, location=emp_localizacao)
         return retorno
     def get_vacancy(self, key_vaga):
         retorno = False
@@ -409,28 +416,38 @@ class infojobs(garimpaHandler):
         if r.status_code == 200:
             j = json.loads(r.text)
             print(r.text)
-            if 'd' in j:
-                dados = j['d']
-                emp_cargo = dados['Category2']
-                emp_salario = dados['SalaryRange']
-                emp_tipo = dados['ManagerialLevel']
-                emp_contrato = dados['ContractWorkType']
-                emp_periodo = dados['WorkingHour']
-                emp_metodo = dados['WorkMethod']
-                emp_descr = dados['Descriptions']['Content'] if dados['Descriptions'] is not None else []
-                emp_exigencias = dados['Requirements']['Content'] if dados['Requirements'] is not None else []
-                emp_vaga = dados['Title']
-                emp_titulo = dados['Job']
-                emp_id = dados['IdCompany']
-                emp_empresa = dados['Company']
-                emp_data = dados['GridDate']
-                emp_estado = dados['Location2']
-                emp_cidade = dados['Location3']
-                emp_categoria = dados['Category1']
-                emp_premium = dados['Limited']
-                emp_confidencial = dados['CompanyHidden']
-                emp_beneficios = dados['Benefits']['Content'] if dados['Benefits'] is not None else []
-                retorno = garimpaVacancy(title=emp_cargo, salary=emp_salario, level=emp_tipo, contract=emp_contrato, period=emp_periodo, method=emp_metodo, description=emp_descr, requiriments=emp_exigencias, vacancy=emp_vaga, id_company=emp_id, name=emp_empresa, date_creation=emp_data, state=emp_estado, city=emp_cidade, is_premium=emp_premium, is_confidential=emp_confidencial, benefitis=emp_beneficios, company_data=self.get_company(emp_id))
+            try:
+                if 'd' in j:
+                    dados = j['d']
+                    if dados['error'] is not None:
+                        msg = 'failed get vacancy data'
+                        if 'Description' in dados['error']:
+                            msg = dados['error']['Description']
+                        raise FailedGetVacancyData("Infojobs Exception on getting vacancy details ... {}".format(msg))
+                    emp_cargo = dados['Category2']
+                    emp_salario = dados['SalaryRange']
+                    emp_tipo = dados['ManagerialLevel']
+                    emp_contrato = dados['ContractWorkType']
+                    emp_periodo = dados['WorkingHour']
+                    emp_metodo = dados['WorkMethod']
+                    emp_descr = dados['Descriptions']['Content'] if dados['Descriptions'] is not None else []
+                    emp_exigencias = dados['Requirements']['Content'] if dados['Requirements'] is not None else []
+                    emp_vaga = dados['Title']
+                    emp_titulo = dados['Job']
+                    emp_id = dados['IdCompany']
+                    emp_empresa = dados['Company']
+                    emp_data = dados['GridDate']
+                    emp_estado = dados['Location2']
+                    emp_cidade = dados['Location3']
+                    emp_categoria = dados['Category1']
+                    emp_premium = dados['Limited']
+                    emp_confidencial = dados['CompanyHidden']
+                    emp_beneficios = dados['Benefits']['Content'] if dados['Benefits'] is not None else []
+                    retorno = garimpaVacancyData(title=emp_cargo, salary=emp_salario, level=emp_tipo, contract=emp_contrato, period=emp_periodo, method=emp_metodo, description=emp_descr, requirements=emp_exigencias, vacancy=emp_vaga, id_company=emp_id, name=emp_empresa, date_creation=emp_data, state=emp_estado, city=emp_cidade, is_premium=emp_premium, is_confidential=emp_confidencial, benefitis=emp_beneficios, company_data=self.get_company(emp_id))
+            except FailedGetVacancyData as err:
+                raise FailedGetVacancyData(err)
+            except Exception as err:
+                raise Exception(err)
         return retorno
 
 
