@@ -1,0 +1,10 @@
+[
+	{
+		"plugin_script": "infojobs",
+		"title": "InfoJobs",
+		"active": true,
+		"url": "https://www.infojobs.com.br",
+		"username": "example@example.com",
+		"password": "pass"
+	}
+]
